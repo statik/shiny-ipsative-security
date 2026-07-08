@@ -1,0 +1,5 @@
+shiny>=1.2
+shinywidgets>=0.5
+plotly>=5.24
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
