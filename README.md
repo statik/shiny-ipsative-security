@@ -24,21 +24,11 @@ category totals overlaid with the running average of all previous respondents.
 
 ## Data storage: the Connect per-content database
 
-On Posit Connect the app stores responses in the **per-content database** that
-Connect provisions for this content item. `db.py` discovers the connection URL
-from the environment, checking these variables in order:
-
-1. `CONNECT_CONTENT_DATABASE_URL`
-2. `POSIT_CONTENT_DATABASE_URL`
-3. `CONTENT_DATABASE_URL`
-4. `DATABASE_URL`
-
-If your Connect version exposes the per-content database under a different
-variable name, set `SCDS_DATABASE_URL_VARS` (a comma-separated list of
-variable names to check) in the content's environment settings — no code
-change needed. Postgres URLs are routed through the bundled `psycopg` driver,
-and `postgres://`-scheme URLs are normalized automatically; SQLite URLs also
-work as-is.
+On Posit Connect the app stores responses in the **per-content database**: a
+Postgres database Connect provisions for this content item and exposes to the
+running process as `CONNECT_CONTENT_DATABASE_URL`. `db.py` reads that variable
+and connects through SQLAlchemy with the bundled `psycopg` driver
+(`postgres://`-scheme URLs are normalized automatically).
 
 When no database URL is present in the environment (e.g. local development),
 responses fall back to a local `scds_responses.sqlite3` file in the working

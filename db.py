@@ -1,14 +1,12 @@
 """Persistence layer for survey responses.
 
 On Posit Connect this app uses the per-content database: Connect provisions a
-database for this content item and exposes its connection URL to the running
-process through an environment variable. We look for the URL in a few
-well-known variables (override the list with SCDS_DATABASE_URL_VARS, a
-comma-separated list, if your Connect version uses a different name) and fall
-back to a local SQLite file for development.
+Postgres database for this content item and exposes its connection URL to the
+running process as CONNECT_CONTENT_DATABASE_URL. When that variable is absent
+(local development), responses fall back to a local SQLite file.
 
-The connection URL is used through SQLAlchemy, so both Postgres and SQLite
-per-content databases work unmodified.
+The connection URL is used through SQLAlchemy, so both the Connect-provisioned
+Postgres database and the SQLite fallback share one code path.
 """
 
 from __future__ import annotations
@@ -19,12 +17,7 @@ import uuid
 
 import sqlalchemy as sa
 
-DEFAULT_URL_VARS = (
-    "CONNECT_CONTENT_DATABASE_URL",
-    "POSIT_CONTENT_DATABASE_URL",
-    "CONTENT_DATABASE_URL",
-    "DATABASE_URL",
-)
+CONTENT_DATABASE_URL_VAR = "CONNECT_CONTENT_DATABASE_URL"
 
 _LOCAL_SQLITE = "sqlite:///scds_responses.sqlite3"
 
@@ -45,22 +38,15 @@ _engine: sa.Engine | None = None
 
 
 def _database_url() -> str:
-    var_list = os.environ.get("SCDS_DATABASE_URL_VARS")
-    candidates = (
-        tuple(v.strip() for v in var_list.split(",") if v.strip())
-        if var_list
-        else DEFAULT_URL_VARS
-    )
-    for var in candidates:
-        url = os.environ.get(var)
-        if url:
-            return _normalize_url(url)
+    url = os.environ.get(CONTENT_DATABASE_URL_VAR)
+    if url:
+        return _normalize_url(url)
     return _LOCAL_SQLITE
 
 
 def _normalize_url(url: str) -> str:
-    # Connect-provisioned Postgres URLs may use the postgres:// scheme, which
-    # SQLAlchemy no longer accepts; route Postgres through the psycopg driver.
+    # Postgres URLs may use the postgres:// scheme, which SQLAlchemy no
+    # longer accepts; route Postgres through the psycopg driver.
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://") :]
     if url.startswith("postgresql://"):
